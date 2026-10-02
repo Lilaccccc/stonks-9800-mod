@@ -1,0 +1,67 @@
+-- 存档类型："manual" 手动存档，"quick" 快速存档，"auto" 快速存档
+SAVE_TYPE = "quick"
+-- 打印通知
+SHOW_NOTIFY = false
+-- 用于防止按住不放时连续触发存档
+is_saving_triggered = false
+
+step = fun () {
+  do {
+    -- 检测是否同时按下了 Ctrl 键 (vk_control) 和 S 键 (ord("S"))
+    if (keyboard_check(vk_control)) {
+      -- keyboard_check_pressed 确保只在按下的那一瞬间触发
+      if (keyboard_check_pressed(ord("S"))) {
+        -- 如果没有被标记为已触发，则执行存档
+        if (!is_saving_triggered) {
+          is_saving_triggered = true
+
+          -- 1. 获取当前存档槽位名称
+          let slot_name = undefined
+          if (variable_global_exists("current_save_slot")) {
+            if (global.current_save_slot != undefined) {
+              slot_name = global.current_save_slot
+            }
+          }
+
+          if (slot_name == undefined) {
+            return
+          }
+
+          -- 触发游戏原生存档函数
+          do {
+            -- 参数1：存档槽位名
+            -- 参数2：存档类型
+            savegame(slot_name, SAVE_TYPE)
+
+            -- 弹出通知提示
+            if SHOW_NOTIFY {
+              mods_notify("快速存档", "Ctrl+S 触发存档！")
+            }
+          } catch err {
+            if SHOW_NOTIFY {
+              mods_notify("快速存档", "存档失败: " + string(err))
+            }
+          }
+        }
+      }
+    } else {
+      -- 如果按键松开了，重置触发状态，允许下次再次存档
+      if (!keyboard_check(vk_control)) {
+        is_saving_triggered = false
+      }
+      if (!keyboard_check(ord("S"))) {
+        is_saving_triggered = false
+      }
+    }
+  } catch err {
+
+  }
+}
+
+mod = {
+  name: "快速存档",
+  description: "按下 Ctrl+S 执行游戏存档。",
+  step: step
+}
+
+return mod

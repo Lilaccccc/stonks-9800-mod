@@ -1,0 +1,69 @@
+-- 增量，0.01 表示每天 +1% 耐久度
+PERCENT = 0.01
+MAX_HEALTH = 1.00
+CAR_FIELD = 8
+-- 打印通知
+SHOW_NOTIFY = false
+
+-- 分割字符串
+split_str = fun(str, delim) {
+    let result = []
+    let delim_len = string_length(delim)
+    let pos = string_pos(delim, str)
+
+    while pos > 0 {
+        array_push(result, string_copy(str, 1, pos - 1))
+        str = string_delete(str, 1, pos + delim_len - 1)
+        pos = string_pos(delim, str)
+    }
+    array_push(result, str)
+    return result
+}
+
+apply_repair = fun () {
+  let i = 0
+
+  while i < 50 {
+    let car_data = undefined
+
+    -- 从 ds_list 读取车辆字符串
+    do {
+      car_data = ds_list_find_value(global.cars, i)
+    } catch err {
+      break
+    }
+
+    if car_data == undefined {
+      break
+    }
+
+    -- 按 "_" 分割字符串
+    let parts = split_str(string(car_data), "_")
+
+    -- 确保分割后的数组足够长，包含字段 8
+    if array_length(parts) > CAR_FIELD {
+      let cur_val_str = parts[CAR_FIELD]
+
+      -- 把字符串转成数字
+      let v = real(cur_val_str)
+
+      -- 增加耐久度
+      let nv = v + PERCENT
+      if nv > MAX_HEALTH {
+        nv = MAX_HEALTH
+      }
+      -- 写入耐久度
+      editcar(i, CAR_FIELD, nv)
+    }
+
+    i += 1
+  }
+}
+
+mod = {
+  name: "车辆每日 +1% 耐久",
+  description: "",
+  new_day: apply_repair
+}
+
+return mod

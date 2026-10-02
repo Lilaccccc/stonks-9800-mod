@@ -1,0 +1,78 @@
+-- 调用的是 gml_GlobalScript_top_year 脚本中财富榜的计算方式
+check_rank = fun () {
+  -- 找到游戏主控制器 o_control
+  let o_id = undefined
+  if (instance_exists(o_control)) {
+    o_id = instance_find(o_control, 0)
+  }
+
+  -- 未找到游戏控制器
+  if (o_id == undefined) {
+    return
+  }
+
+  -- 读取 o_control 里的 carsdoms 变量
+  let carsdoms_val = undefined
+  do {
+    carsdoms_val = variable_instance_get(o_id, "carsdoms")
+  } catch err {
+
+  }
+
+  if (carsdoms_val == undefined) {
+    return
+  }
+
+  -- 计算全国排名
+  let koef_nub = clamp(relerp(0, 50, global.char[7], 0.1, 2), 0, 3)
+  let koef_nub2 = (((((carsdoms_val * 1.25) + global.money + (global.allstockprice * 1.25)) - global.dolg) * clamp(global.trend, 0.9, 1.6) * min(global.char[6], 111)) / 77) * 1.06
+  let koef_nub3 = koef_nub * koef_nub2 * 1.04
+
+  let number_tokyo = 999
+  do {
+    number_tokyo = getRankByMoney(koef_nub3, 1.1)
+  } catch err {
+    return
+  }
+
+  -- 判定全球排名
+  let msg = "=== 财富实时排名 ===\n"
+  msg += "东京(全国)排名: 第 " + string(number_tokyo) + " 名\n"
+
+  if (number_tokyo <= 100) {
+    let koef_nub5 = ((global.fortune * clamp(global.trend, 1.1, 2)) / global.kurs) * 155
+    let number_world = 999
+    do {
+      number_world = getRankByMoney(koef_nub5, 1.25)
+    } catch err {
+      number_world = 999
+    }
+
+    if (number_world <= 50) {
+      msg += "全球排名: 第 " + string(number_world) + " 名"
+    } else {
+      msg += "全球排名: 已上榜但未进前50名"
+    }
+  } else {
+    msg += "全球排名: 未上榜 (需先进入全国前100)"
+  }
+
+  mods_notify("财富排名查询", msg)
+}
+
+step = fun () {
+  -- 监听 Ctrl + P 键
+  if (keyboard_check(vk_control)) {
+    if (keyboard_check_pressed(ord("P"))) {
+      check_rank()
+    }
+  }
+}
+
+mod = {
+  name: "查看财富排名",
+  description: "按下 Ctrl+P 键查看当前财富全国/全球排名，不触发成就。",
+  step: step
+}
+
+return mod

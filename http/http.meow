@@ -1,0 +1,46 @@
+-- 构造要发送的 JSON 数据
+build_payload = fun () {
+  let money_val = 0
+  if (variable_global_exists("money")) { money_val = global.money }
+
+  -- 拼接 JSON
+  return "{\"money\": " + string(money_val) + "}"
+}
+
+-- 发送数据的封装函数
+send_data_to_server = fun () {
+  -- 使用 do...catch 捕获可能的错误
+  do {
+    let payload = build_payload()
+
+    -- 更新屏幕上的状态文本
+    debug_status_text = "正在发送: " + payload
+
+    -- 尝试发送请求
+    http_post_string("http://127.0.0.1:3000/api/report", payload)
+
+    -- 如果上面这行没有崩溃，才会执行到这里
+    -- 注意：mods_notify 至少需要两个参数 (标题, 内容)
+    -- mods_notify("HTTP Mod", "HTTP 请求已发送至本地服务端。")
+
+    debug_status_text = "发送成功!"
+  } catch err {
+    -- 如果 http_request 报错，会跳到这里执行
+    -- err 包含了具体的错误信息
+    let err_msg = string(err)
+
+    -- 在屏幕和控制台打印错误信息
+    debug_status_text = "发送失败: " + err_msg
+
+    -- 弹窗显示错误（方便游戏内查看）
+    mods_notify("HTTP Mod 错误", err_msg)
+  }
+}
+
+mod = {
+  name: "定时 HTTP 数据推送"
+  description: "每日推送金钱"
+  new_day: send_data_to_server
+}
+
+return mod
